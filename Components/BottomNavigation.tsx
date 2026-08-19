@@ -1,6 +1,6 @@
-import React from "react";
 import HomeScreen from '../Screens/HomeScreen';
 import MapScreen from "../Screens/MapScreen";
+import ArrowScreen from "../Screens/ArrowScreen";
 import { createBottomTabNavigator, createBottomTabScreen} from '@react-navigation/bottom-tabs';
 import { createStaticNavigation } from "@react-navigation/native";
 
@@ -19,6 +19,12 @@ const Tabs = createBottomTabNavigator({
           tabBarLabel: 'Map',
         },
       },
+      Arrow: {
+        screen: ArrowScreen,
+        navigationOptions: {
+          tabBarLabel: 'Arrow',
+        },
+      }
   }
 })
 
