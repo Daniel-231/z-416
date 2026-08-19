@@ -2,6 +2,9 @@ import React, { useRef, useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
+import Animated from 'react-native-reanimated';
+import { Circle } from 'react-native-svg';
+
 const ArrowSVG: React.FC = () => {
   return (
     <Svg width={140} height={160} viewBox="0 0 140 200">
