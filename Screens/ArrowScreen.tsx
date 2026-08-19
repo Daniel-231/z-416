@@ -9,11 +9,7 @@ function Arrow() {
         <group ref={groupRef}>
             <mesh position={[0, -0.3, 0]}>
                 <cylinderGeometry args={[0.1, 0.1, 0.6, 16]} />
-                <meshStandardMaterial color="#e63946" />
-            </mesh>
-            <mesh position={[0, 0.3, 0]}>
-                <coneGeometry args={[0.3, 0.6, 16]} />
-                <meshStandardMaterial color="#e63946" />
+                <meshStandardMaterial color="#5339e6" />
             </mesh>
         </group>
     );
@@ -32,7 +28,7 @@ const ArrowScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#111' },
+    container: { flex: 1 },
 });
 
 export default ArrowScreen;
