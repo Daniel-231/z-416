@@ -1,37 +1,33 @@
-import React, { useRef, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Canvas } from '@react-three/fiber';
-import * as THREE from 'three';
+import React, { useRef, useEffect } from "react";
+import { StyleSheet, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
-function Object3D() {
-    const groupRef = useRef<THREE.Group>(null);
-    useEffect(() => { // If this is meant to update every frame, it's useFrame, not useEffect
-        groupRef.current?.rotation.set(200, 100, 100); // Rotation of the arrow in radians (x, y, z)
-    }, []);
-    return (
-        <group ref={groupRef}>
-            <mesh position={[0, -0.3, 0]}>
-                <sphereGeometry args={[0.5, 32, 16]} /> {/* Each Shape Has It's Own Args */}
-                <meshStandardMaterial color="#5339e6" />
-            </mesh>
-        </group>
-    );
-}
+const ArrowSVG: React.FC = () => {
+  return (
+    <Svg width={140} height={160} viewBox="0 0 140 200">
+      <Path
+        d="M70 0 L142 106 L108 106 L108 200 L32 200 L32 106 L-2 106 Z"
+        fill="#fff"
+      />
+    </Svg>
+  );
+};
 
 const ArrowScreen: React.FC = () => {
-    return (
-        <View style={styles.container}>
-            <Canvas camera={{ position: [0, 0, 3] }}>
-                <ambientLight intensity={0.5} />
-                <directionalLight position={[2, 2, 2]} intensity={1} />
-                <Object3D />
-            </Canvas>
-        </View>
-    );
+  return (
+    <View style={styles.container}>
+      <ArrowSVG />
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#34C759",
+  },
 });
 
 export default ArrowScreen;
