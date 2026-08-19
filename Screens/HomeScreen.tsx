@@ -1,10 +1,10 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 
-const HomeSreen: React.FC = () => {
+const HomeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
-        <Text>Home Screen</Text>
+      <Text >Welcome to the Home Screen!</Text>
     </View>
   );
 }
@@ -12,9 +12,8 @@ const HomeSreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+    justifyContent: "center",
+    alignItems: "center",
+}});
 
-export default HomeSreen;
+export default HomeScreen;
