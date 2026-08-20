@@ -1,5 +1,6 @@
 {
   "expo": {
+    "newArchEnabled": true,
     "name": "z-416",
     "slug": "z-416",
     "version": "1.0.0",
@@ -23,6 +24,6 @@
     },
     "plugins": [
       "expo-asset"
-    ]
+    ]  
   }
 }
