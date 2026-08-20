@@ -11,37 +11,87 @@ import Animated, {
 
 import * as Location from "expo-location";
 
+type LocationDataType = {
+  coords: {
+    accuracy: number;
+    altitude: number;
+    altitudeAccuracy: number;
+    heading: number;
+    latitude: number;
+    longitude: number;
+    speed: number;
+  };
+  timestamp: number;
+};
+
+const mockLocation: LocationDataType = {
+  coords: {
+    accuracy: 5,
+    altitude: 0,
+    altitudeAccuracy: 1,
+    heading: 0,
+    latitude: 37.9427,
+    longitude: 23.6469,
+    speed: 0,
+  },
+  timestamp: Date.now(),
+};
+
 const ArrowScreen: React.FC = () => {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
+
 
   const AnimatedSvg = Animated.createAnimatedComponent(Svg); // Create an Animated version of any React Native component.
+  const rotation = useSharedValue<number>(0); // A shared value for rotation
+  const [heading, setHeading] = useState<number>(0);
 
-  const rotation = useSharedValue(0); // A shared value for rotation
 
-  const HandleRotation = () => {
-    rotation.value = withTiming(rotation.value + 45, { duration: 1000 }); // Animate rotation by adding 45 degrees
-  };
-
-  const animetedStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }], // Apply rotation transformation based on the shared value
+  const animetedStyle = useAnimatedStyle(() => ({ // Apply rotation transformation based on the shared value
+    transform: [{ rotate: `${rotation.value}deg` }]
   }));
 
+  function calculateBearing(from: LocationDataType, to: LocationDataType): number {
+  const lat1 = (from.coords.latitude * Math.PI) / 180;
+  const lat2 = (to.coords.latitude * Math.PI) / 180;
+  const dLon = ((to.coords.longitude - from.coords.longitude) * Math.PI) / 180;
+
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+
+  const bearing = (Math.atan2(y, x) * 180) / Math.PI;
+  return (bearing + 360) % 360;
+}
+
+
+
+
   useEffect(() => {
-    async function getCurrentLocation() {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+    let locationSubscription: Location.LocationSubscription | null = null;
+
+    async function startWatching() {
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
+        setPermissionDenied(true);
         return;
       }
 
-      try {
-        const currentLocation = await Location.getCurrentPositionAsync({});
-        setLocation(currentLocation);
-      } catch (error) {
-        console.error("Error getting location:", error);
-      }
+      locationSubscription = await Location.watchPositionAsync({ accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 1 },
+        (newLocation) => {
+          setLocation(newLocation);
+          rotation.value = withTiming(rotation.value + mockLocation.coords.altitude, { duration: 1000 }); // Animate rotation by adding 45 degrees
+          //console.log("New location:", newLocation);
+        }
+      );
     }
 
-    getCurrentLocation();
+    startWatching();
+
+    return () => {
+      locationSubscription?.remove();
+    };
   }, []);
 
   return (
@@ -57,7 +107,6 @@ const ArrowScreen: React.FC = () => {
           fill="#fff"
         />
       </AnimatedSvg>
-      <Button title="Rotate Arrow" onPress={HandleRotation} />
       <Button title="Get Current Location" onPress={() => console.log(location)} />
     </View>
   );
@@ -68,7 +117,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#3454c7",
+    backgroundColor: "#000000",
   },
 });
 
