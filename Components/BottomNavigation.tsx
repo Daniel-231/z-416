@@ -1,6 +1,5 @@
 import React from 'react';
 import HomeScreen from '../Screens/HomeScreen';
-import MapScreen from '../Screens/MapScreen';
 import ArrowScreen from '../Screens/ArrowScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -17,15 +16,7 @@ const Tabs = createBottomTabNavigator({
         ),
       },
     },
-    Map: {
-      screen: MapScreen,
-      options: {
-        tabBarLabel: 'Map',
-        tabBarIcon: ({ focused, color, size }) => (
-          <Ionicons name={focused ? 'map' : 'map-outline'} size={size} color={color} />
-        ),
-      },
-    },
+
     Arrow: {
       screen: ArrowScreen,
       options: {
