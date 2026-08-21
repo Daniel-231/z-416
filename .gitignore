@@ -3,12 +3,25 @@
 # dependencies
 node_modules/
 .claude/
+.pnp
+.pnp.js
 
 # Expo
 .expo/
+.expo-shared/
 dist/
 web-build/
 expo-env.d.ts
+
+# Editors / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# logs
+*.log
+logs/
 
 # Native
 .kotlin/
@@ -32,6 +45,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
 # typescript
