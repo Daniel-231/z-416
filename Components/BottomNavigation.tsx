@@ -1,10 +1,9 @@
 import React from 'react';
 import HomeScreen from '../Screens/HomeScreen';
 import ArrowScreen from '../Screens/ArrowScreen';
-import AuthTestScreen from '../Screens/AuthTestScreen';
+import ProfileScreen from '../Screens/ProfileScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStaticNavigation } from '@react-navigation/native';
 
 const Tabs = createBottomTabNavigator({
   screens: {
@@ -28,10 +27,10 @@ const Tabs = createBottomTabNavigator({
       },
     },
 
-    Auth: {
-      screen: AuthTestScreen,
+    Profile: {
+      screen: ProfileScreen,
       options: {
-        tabBarLabel: 'Auth',
+        tabBarLabel: 'Profile',
         tabBarIcon: ({ focused, color, size }) => (
           <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
         ),
@@ -40,6 +39,6 @@ const Tabs = createBottomTabNavigator({
   },
 });
 
-const Navigation = createStaticNavigation(Tabs);
+const BottomNavigation = Tabs.getComponent();
 
-export default Navigation;
+export default BottomNavigation;

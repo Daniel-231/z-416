@@ -1,9 +1,13 @@
 import React from "react";
-import Navigation from "./Components/BottomNavigation";
+
+import RootNavigation from "./Components/RootNavigation";
+import AuthProvider from "./Components/AuthProvider";
 
 const App: React.FC = () => {
   return (
-    <Navigation />
+    <AuthProvider>
+      <RootNavigation />
+    </AuthProvider>
   );
 };
 
