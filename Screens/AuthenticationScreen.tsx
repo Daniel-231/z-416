@@ -20,8 +20,9 @@ const AuthenticationScreen: React.FC = () => {
         if (!token) return console.log("Did Not Sync. No Token Found");
 
         try {
-        const res = await axios.post(`${API_URL}/auth/sync`, null, {
-            headers: { Authorization: `Bearer ${token}` },
+        const res = await axios.post(`${API_URL}/auth/sync`, 
+            { username }, 
+            { headers: { Authorization: `Bearer ${token}` },
         });
         console.log(`Sync OK (${res.status})`, res.data);
         } catch (err) {
@@ -52,7 +53,12 @@ const AuthenticationScreen: React.FC = () => {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Welcome</Text>
-
+            <TextInput
+                style={styles.input}
+                placeholder="Username"
+                value={username}
+                onChangeText={setUsername}
+            />
             <TextInput
                 style={styles.input}
                 placeholder="Email"
