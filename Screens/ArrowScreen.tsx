@@ -1,5 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
-import { Button, StyleSheet, View } from "react-native";
+import { Button, StyleSheet, View, FlatList, Text } from "react-native";
+
+import { io, Socket } from "socket.io-client";
 
 // SVG and Reanimated imports
 import Svg, { Path } from "react-native-svg"; // Svg = the root SVG container component, Path = draws a shape from coordinate instructions
@@ -24,22 +26,15 @@ type LocationDataType = {
   timestamp: number;
 };
 
-const mockLocation: LocationDataType = {
-  coords: {
-    accuracy: 5,
-    altitude: 0,
-    altitudeAccuracy: 1,
-    heading: 0,
-    latitude: 37.9364,
-    longitude: 23.6297,
-    speed: 0,
-  },
-  timestamp: Date.now(),
-};
+const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 
 const ArrowScreen: React.FC = () => {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
+
+  // Socket
+  const socketRef = useRef<Socket | null>(null);
+  const [locationMessages, setLocationMessages] = useState<string[]>([]);
 
 
   const AnimatedSvg = Animated.createAnimatedComponent(Svg); // Create an Animated version of any React Native component.
@@ -77,8 +72,9 @@ const ArrowScreen: React.FC = () => {
       locationSubscription = await Location.watchPositionAsync({ accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 1 },
         (newLocation) => {
           setLocation(newLocation);
+          socketRef.current?.emit('sendLocation', newLocation);
 
-          const bearing = calculateBearing(newLocation.coords, mockLocation.coords);
+          const bearing = calculateBearing(newLocation.coords, newLocation.coords);
           const arrowRotation = (bearing - headingRef.current + 360) % 360;
 
           rotation.value = withTiming(arrowRotation, { duration: 500 });
@@ -93,6 +89,19 @@ const ArrowScreen: React.FC = () => {
     }
 
     startWatching();
+
+    // Socketing
+    const socket = io(API_URL, { transports: ["websocket"] });
+    socketRef.current = socket;
+
+    socket.on("connect", () => { setLocationMessages((m) => [...m, "Connected"]); });
+
+    socket.on('sendLocation', (payload) =>
+      setLocationMessages((m) => [
+        ...m,
+        `${payload.from}: ${payload.location.coords.latitude.toFixed(4)}, ${payload.location.coords.longitude.toFixed(4)}`,
+      ])
+    );
 
     return () => {
       locationSubscription?.remove();
