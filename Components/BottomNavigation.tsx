@@ -27,6 +27,16 @@ const Tabs = createBottomTabNavigator({
       },
     },
 
+    Friends: {
+      screen: require('../Screens/FriendsScreen').default,
+      options: {
+        tabBarLabel: 'Friends',
+        tabBarIcon: ({ focused, color, size }) => (
+          <Ionicons name={focused ? 'people' : 'people-outline'} size={size} color={color} />
+        ),
+      },
+    },
+
     Profile: {
       screen: ProfileScreen,
       options: {
