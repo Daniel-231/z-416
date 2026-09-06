@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,14 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+
+import { useNavigation } from '@react-navigation/native';
+
 import axios from "axios";
 
 import { AuthorizationToken } from "../Controllers/auth";
+import { useSocket } from "../Components/SocketProvider";
+
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 
@@ -33,6 +38,11 @@ const FriendsScreen: React.FC = () => {
   const [friends, setFriends] = useState<User[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [username, setUsername] = useState("");
+  const navigation = useNavigation<any>();
+
+
+  // Socket instance for real-time communication
+  const socket = useSocket();
 
   const getAuthHeaders = async () => {
     const token = await AuthorizationToken();
@@ -127,6 +137,44 @@ const sendFriendRequest = async () => {
     }
   };
 
+
+
+  // All the things she said
+  const getFriendshipId = async (username: string): Promise<string> => { // Get FriendshipID and use it to create a socket room for that friendship
+    try {
+      const response = await axios.get<{ friendshipId: string }>(
+      `${API_URL}/friends/get_friendship_id`,
+      {
+        params: { username: username },
+        headers: await getAuthHeaders(),
+      }
+    );
+      console.log(`Friendship ID for username ${username}: ${response.data.friendshipId}`);
+      return response.data.friendshipId;
+    } catch (error) {
+      console.error(`Failed to get friendship ID for username ${username}:`, error);
+      throw error;
+    }
+  };
+
+  const createRoomHandler = async (username: string) => {
+    if (!socket) {
+      Alert.alert("Error", "Socket is not initialized");
+      return;
+    }
+    if (!socket.connected) {
+      Alert.alert("Error", "Socket is not connected yet");
+      return;
+    }
+
+    const friendshipId = await getFriendshipId(username);
+    socket.emit("joinRoom", `${friendshipId}-room`);
+
+    navigation.navigate("Arrow", { friendshipId });
+  };
+
+
+
   const refresh = () => {
     fetchFriends();
     fetchFriendRequests();
@@ -183,7 +231,10 @@ const sendFriendRequest = async () => {
         keyExtractor={(friend) => friend.id}
         ListEmptyComponent={<Text>No friends yet</Text>}
         renderItem={({ item }) => (
-          <Text style={styles.friend}>{item.username ?? item.id}</Text>
+          <View style={styles.row}>
+            <Text>{item.username ?? item.id}</Text>
+            <Button title="Create Room" onPress={() => createRoomHandler(item.username ?? item.id)} />
+          </View>
         )}
       />
     </View>

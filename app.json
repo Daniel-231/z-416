@@ -1,6 +1,5 @@
 {
   "expo": {
-    "newArchEnabled": true,
     "name": "z-416",
     "slug": "z-416",
     "version": "1.0.0",
@@ -23,7 +22,9 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-asset"
-    ]  
+      "expo-asset",
+      "expo-font",
+      "expo-status-bar"
+    ]
   }
 }

@@ -2,11 +2,14 @@ import React from "react";
 
 import RootNavigation from "./Components/RootNavigation";
 import AuthProvider from "./Components/AuthProvider";
+import SocketProvider  from "./Components/SocketProvider";
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <RootNavigation />
+      <SocketProvider>
+        <RootNavigation />
+      </SocketProvider>
     </AuthProvider>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Button, StyleSheet, View, FlatList, Text } from "react-native";
 
+import axios from "axios";
 import { io, Socket } from "socket.io-client";
 
 // SVG and Reanimated imports
@@ -10,6 +11,9 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
+
+import { AuthorizationToken } from "../Controllers/auth";
+import { useSocket } from "../Components/SocketProvider";
 
 import * as Location from "expo-location";
 
@@ -26,14 +30,19 @@ type LocationDataType = {
   timestamp: number;
 };
 
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 
-const ArrowScreen: React.FC = () => {
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+const ArrowScreen: React.FC = ({ route }: any) => {
+  const [currentDeviceLocation, setCurrentDeviceLocation] = useState<Location.LocationObject | null>(null); // State to store the current location of the device
+  const [targetDeviceLocation, setTargetDeviceLocation] = useState<Location.LocationObject | null>(null); // State to store the target device's location
+
   const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
 
   // Socket
   const socketRef = useRef<Socket | null>(null);
+  const socket  = useSocket(); // Socket instance for real-time communication
+
   const [locationMessages, setLocationMessages] = useState<string[]>([]);
 
 
@@ -57,6 +66,25 @@ const ArrowScreen: React.FC = () => {
     return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
   }
 
+  const getAuthHeaders = async () => { // Function to get the authorization headers for the API requests
+    const token = await AuthorizationToken();
+  
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  };
+  
+  const closeSocketRoom = async (roomId: string) => {
+    if (!socket) return;
+    socket.emit('closeRoom', roomId);
+    console.log(`Socket room closed with ID: ${roomId}`);
+  };
+
+  const getCurrentAvailableRooms = async () => {
+    if (!socket) return;
+    socket.emit("getCurrentAvailableRooms");
+  };
+
 
   useEffect(() => {
     let locationSubscription: Location.LocationSubscription | null = null;
@@ -71,14 +99,14 @@ const ArrowScreen: React.FC = () => {
 
       locationSubscription = await Location.watchPositionAsync({ accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 1 },
         (newLocation) => {
-          setLocation(newLocation);
-          socketRef.current?.emit('sendLocation', newLocation);
+          setCurrentDeviceLocation(newLocation);
+          //socketRef.current?.emit('sendLocation', newLocation);
 
           const bearing = calculateBearing(newLocation.coords, newLocation.coords);
           const arrowRotation = (bearing - headingRef.current + 360) % 360;
 
           rotation.value = withTiming(arrowRotation, { duration: 500 });
-          console.log(`New Location: ${newLocation.coords.latitude}, ${newLocation.coords.longitude}, Bearing: ${bearing}, Heading: ${headingRef.current}, Arrow Rotation: ${arrowRotation}`);
+          //console.log(`Current Location Of Pointer Device: ${newLocation.coords.latitude}, ${newLocation.coords.longitude}, Bearing: ${bearing}, Heading: ${headingRef.current}, Arrow Rotation: ${arrowRotation}`);
         }
       );
 
@@ -96,12 +124,13 @@ const ArrowScreen: React.FC = () => {
 
     socket.on("connect", () => { setLocationMessages((m) => [...m, "Connected"]); });
 
+    /*
     socket.on('sendLocation', (payload) =>
       setLocationMessages((m) => [
         ...m,
         `${payload.from}: ${payload.location.coords.latitude.toFixed(4)}, ${payload.location.coords.longitude.toFixed(4)}`,
-      ])
-    );
+      ]));
+    */
 
     return () => {
       locationSubscription?.remove();
@@ -114,6 +143,19 @@ const ArrowScreen: React.FC = () => {
       <AnimatedSvg width={140} height={160} viewBox="0 0 140 200" style={animetedStyle}>
         <Path d="M70 0 L142 106 L108 106 L108 200 L32 200 L32 106 L-2 106 Z" fill="#000000"/>
       </AnimatedSvg>
+      <View>
+          <Text>
+          {currentDeviceLocation
+            ? `Current Device Location: ${currentDeviceLocation.coords.latitude.toFixed(4)}, ${currentDeviceLocation.coords.longitude.toFixed(4)}`
+            : "Waiting for current device location..."}
+        </Text>
+      </View>
+      <View>
+          <Button title="Close Socket Room" onPress={() => closeSocketRoom(`${route.params.friendshipId}-room`)} />
+      </View>
+      <View>
+        <Button title="Get Current Available Rooms" onPress={() => getCurrentAvailableRooms()} />
+      </View>
       {permissionDenied && <View />}
     </View>
   );
