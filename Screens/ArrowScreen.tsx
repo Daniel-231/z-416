@@ -40,7 +40,6 @@ const ArrowScreen: React.FC = ({ route }: any) => {
   const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
 
   // Socket
-  const socketRef = useRef<Socket | null>(null);
   const socket  = useSocket(); // Socket instance for real-time communication
 
   const [locationMessages, setLocationMessages] = useState<string[]>([]);
@@ -118,11 +117,6 @@ const ArrowScreen: React.FC = ({ route }: any) => {
 
     startWatching();
 
-    // Socketing
-    const socket = io(API_URL, { transports: ["websocket"] });
-    socketRef.current = socket;
-
-    socket.on("connect", () => { setLocationMessages((m) => [...m, "Connected"]); });
 
     /*
     socket.on('sendLocation', (payload) =>
