@@ -1,11 +1,7 @@
-import React, { useRef, useEffect, useState } from "react";
-import { Button, StyleSheet, View, FlatList, Text } from "react-native";
+import React, { useRef, useEffect, useState, useCallback } from "react";
+import { Button, StyleSheet, View, Text } from "react-native";
 
-import axios from "axios";
-import { io, Socket } from "socket.io-client";
-
-// SVG and Reanimated imports
-import Svg, { Path } from "react-native-svg"; // Svg = the root SVG container component, Path = draws a shape from coordinate instructions
+import Svg, { Path } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -17,65 +13,74 @@ import { useSocket } from "../Components/SocketProvider";
 
 import * as Location from "expo-location";
 
-type LocationDataType = {
-  coords: {
-    accuracy: number;
-    altitude: number;
-    altitudeAccuracy: number;
-    heading: number;
-    latitude: number;
-    longitude: number;
-    speed: number;
-  };
-  timestamp: number;
-};
-
+// Created outside the component so it isn't rebuilt on every render
+const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 
 const ArrowScreen: React.FC = ({ route }: any) => {
-  const [currentDeviceLocation, setCurrentDeviceLocation] = useState<Location.LocationObject | null>(null); // State to store the current location of the device
-  const [targetDeviceLocation, setTargetDeviceLocation] = useState<Location.LocationObject | null>(null); // State to store the target device's location
+  const [currentDeviceLocation, setCurrentDeviceLocation] =
+    useState<Location.LocationObject | null>(null);
+
+  const [peers, setPeers] = useState<Record<string, Location.LocationObject>>({});
+  const peersRef = useRef<Record<string, Location.LocationObject>>({});
 
   const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
 
-  // Socket
-  const socket  = useSocket(); // Socket instance for real-time communication
+  const socket = useSocket();
 
-  const [locationMessages, setLocationMessages] = useState<string[]>([]);
+  const rotation = useSharedValue<number>(0);
+  const headingRef = useRef<number>(0);
+  const currentLocationRef = useRef<Location.LocationObject | null>(null);
 
-
-  const AnimatedSvg = Animated.createAnimatedComponent(Svg); // Create an Animated version of any React Native component.
-  const rotation = useSharedValue<number>(0); // A shared value for rotation
-  const headingRef = useRef<number>(0); // A ref to store the current heading
-
-
-  const animetedStyle = useAnimatedStyle(() => ({ // Apply rotation transformation based on the shared value
-    transform: [{ rotate: `${rotation.value}deg` }]
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
   }));
 
-  function calculateBearing( from: { latitude: number; longitude: number }, to: { latitude: number; longitude: number }): number {
+  function calculateBearing(
+    from: { latitude: number; longitude: number },
+    to: { latitude: number; longitude: number }
+  ): number {
     const lat1 = (from.latitude * Math.PI) / 180;
     const lat2 = (to.latitude * Math.PI) / 180;
     const dLon = ((to.longitude - from.longitude) * Math.PI) / 180;
 
     const y = Math.sin(dLon) * Math.cos(lat2);
-    const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+    const x =
+      Math.cos(lat1) * Math.sin(lat2) -
+      Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
 
     return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
   }
 
-  const getAuthHeaders = async () => { // Function to get the authorization headers for the API requests
+  // Recomputes the arrow angle from whatever the refs currently hold.
+  // Called from three places: own position update, heading update, peer update.
+  const updateRotation = useCallback(() => {
+    const me = currentLocationRef.current;
+    const peer = Object.values(peersRef.current)[0]; // 1:1 room
+    if (!me || !peer) return;
+
+    const bearing = calculateBearing(me.coords, peer.coords);
+    const target = (bearing - headingRef.current + 360) % 360;
+
+    // Shortest-path so the arrow doesn't spin the long way around 0/360
+    const delta = ((target - rotation.value + 540) % 360) - 180;
+    rotation.value = withTiming(rotation.value + delta, { duration: 500 });
+  }, []);
+
+  const getAuthHeaders = async () => {
     const token = await AuthorizationToken();
-  
-    return {
-      Authorization: `Bearer ${token}`,
-    };
+    return { Authorization: `Bearer ${token}` };
   };
-  
+
+  const sendLocation = async (roomId: string, location: Location.LocationObject) => {
+    if (!socket) return;
+    socket.emit("sendLocation", { roomId, location });
+  };
+
   const closeSocketRoom = async (roomId: string) => {
     if (!socket) return;
-    socket.emit('closeRoom', roomId);
+    socket.emit("closeRoom", roomId);
     console.log(`Socket room closed with ID: ${roomId}`);
   };
 
@@ -84,7 +89,29 @@ const ArrowScreen: React.FC = ({ route }: any) => {
     socket.emit("getCurrentAvailableRooms");
   };
 
+  // Incoming peer locations
+  useEffect(() => {
+    if (!socket) return;
 
+    const onLocation = ({
+      from,
+      location,
+    }: {
+      from: string;
+      location: Location.LocationObject;
+    }) => {
+      peersRef.current = { ...peersRef.current, [from]: location };
+      setPeers(peersRef.current);
+      updateRotation();
+    };
+
+    socket.on("sendLocation", onLocation);
+    return () => {
+      socket.off("sendLocation", onLocation);
+    };
+  }, [socket, updateRotation]);
+
+  // Own position + heading
   useEffect(() => {
     let locationSubscription: Location.LocationSubscription | null = null;
     let headingSubscription: Location.LocationSubscription | null = null;
@@ -96,61 +123,76 @@ const ArrowScreen: React.FC = ({ route }: any) => {
         return;
       }
 
-      locationSubscription = await Location.watchPositionAsync({ accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 1 },
+      locationSubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 1000,
+          distanceInterval: 1,
+        },
         (newLocation) => {
+          currentLocationRef.current = newLocation;
           setCurrentDeviceLocation(newLocation);
-          //socketRef.current?.emit('sendLocation', newLocation);
-
-          const bearing = calculateBearing(newLocation.coords, newLocation.coords);
-          const arrowRotation = (bearing - headingRef.current + 360) % 360;
-
-          rotation.value = withTiming(arrowRotation, { duration: 500 });
-          //console.log(`Current Location Of Pointer Device: ${newLocation.coords.latitude}, ${newLocation.coords.longitude}, Bearing: ${bearing}, Heading: ${headingRef.current}, Arrow Rotation: ${arrowRotation}`);
+          sendLocation(`${route.params.friendshipId}-room`, newLocation);
+          updateRotation();
         }
       );
 
       headingSubscription = await Location.watchHeadingAsync((newHeading) => {
         headingRef.current = newHeading.trueHeading;
+        updateRotation();
       });
-
     }
 
     startWatching();
-
-
-    /*
-    socket.on('sendLocation', (payload) =>
-      setLocationMessages((m) => [
-        ...m,
-        `${payload.from}: ${payload.location.coords.latitude.toFixed(4)}, ${payload.location.coords.longitude.toFixed(4)}`,
-      ]));
-    */
 
     return () => {
       locationSubscription?.remove();
       headingSubscription?.remove();
     };
-  }, []);
+  }, [updateRotation]);
+
+  const peerEntries = Object.entries(peers);
 
   return (
     <View style={styles.container}>
-      <AnimatedSvg width={140} height={160} viewBox="0 0 140 200" style={animetedStyle}>
-        <Path d="M70 0 L142 106 L108 106 L108 200 L32 200 L32 106 L-2 106 Z" fill="#000000"/>
+      <AnimatedSvg width={140} height={160} viewBox="0 0 140 200" style={animatedStyle}>
+        <Path
+          d="M70 0 L142 106 L108 106 L108 200 L32 200 L32 106 L-2 106 Z"
+          fill="#000000"
+        />
       </AnimatedSvg>
+
       <View>
-          <Text>
+        <Text>
           {currentDeviceLocation
-            ? `Current Device Location: ${currentDeviceLocation.coords.latitude.toFixed(4)}, ${currentDeviceLocation.coords.longitude.toFixed(4)}`
+            ? `You: ${currentDeviceLocation.coords.latitude.toFixed(4)}, ${currentDeviceLocation.coords.longitude.toFixed(4)}`
             : "Waiting for current device location..."}
         </Text>
       </View>
+
       <View>
-          <Button title="Close Socket Room" onPress={() => closeSocketRoom(`${route.params.friendshipId}-room`)} />
+        {peerEntries.length === 0 ? (
+          <Text>Waiting for peer location...</Text>
+        ) : (
+          peerEntries.map(([id, loc]) => (
+            <Text key={id}>
+              {id}: {loc.coords.latitude.toFixed(4)}, {loc.coords.longitude.toFixed(4)}
+            </Text>
+          ))
+        )}
+      </View>
+
+      <View>
+        <Button
+          title="Close Socket Room"
+          onPress={() => closeSocketRoom(`${route.params.friendshipId}-room`)}
+        />
       </View>
       <View>
-        <Button title="Get Current Available Rooms" onPress={() => getCurrentAvailableRooms()} />
+        <Button title="Get Current Available Rooms" onPress={getCurrentAvailableRooms} />
       </View>
-      {permissionDenied && <View />}
+
+      {permissionDenied && <Text>Location permission denied.</Text>}
     </View>
   );
 };
