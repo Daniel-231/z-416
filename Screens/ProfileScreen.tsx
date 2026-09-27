@@ -20,6 +20,7 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Profile</Text>
       <Text style={styles.email}>{session?.user?.email ?? "Not signed in"}</Text>
+      <Text style={styles.userId}>User ID: {session?.user?.id ?? "Not signed in"}</Text>
 
       <View style={styles.button}>
         <Button title="Log Out" onPress={handleSignOut} />
@@ -42,6 +43,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   email: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#555",
+  },
+  userId: {
     fontSize: 16,
     textAlign: "center",
     color: "#555",

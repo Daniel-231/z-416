@@ -173,6 +173,19 @@ const sendFriendRequest = async () => {
     navigation.navigate("Arrow", { friendshipId });
   };
 
+  const requestLocationShare = async (sharerId: string) => {
+    try {
+      const headers = await getAuthHeaders();
+
+      const request = await axios.post(`${API_URL}/location-share/request-location-share`, { sharerId }, { headers });
+      console.log("Location share request response:", request);
+      Alert.alert("Success", "Location share request sent");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to request location share");
+    }
+  }
+
 
 
   const refresh = () => {
@@ -234,6 +247,7 @@ const sendFriendRequest = async () => {
           <View style={styles.row}>
             <Text>{item.username ?? item.id}</Text>
             <Button title="Create Room" onPress={() => createRoomHandler(item.username ?? item.id)} />
+            <Button title="Request Location Share" onPress={() => requestLocationShare(item.id)} />
           </View>
         )}
       />
