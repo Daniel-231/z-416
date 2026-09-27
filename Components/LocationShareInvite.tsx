@@ -61,7 +61,7 @@ const LocationShareInvite: React.FC = () => {
         }
     };
 
-    // Fetch initial location share requests when the component mounts
+    // Polling and AppState listener for fetching location share requests
     useEffect(() => {
         fetchRequests();
 
