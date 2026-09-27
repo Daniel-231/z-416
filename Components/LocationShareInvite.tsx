@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, StyleSheet, AppState } from "react-native";
+import { View, Text, Button, StyleSheet, AppState, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import axios from "axios";
@@ -32,6 +32,40 @@ const LocationShareInvite: React.FC = () => {
 
     const getAuthHeaders = async () => ({ Authorization: `Bearer ${await AuthorizationToken()}` });
 
+    // All the things she said
+    const getFriendshipId = async (username: string): Promise<string> => { // Get FriendshipID and use it to create a socket room for that friendship
+        try {
+        const response = await axios.get<{ friendshipId: string }>(
+        `${API_URL}/friends/get_friendship_id`,
+        {
+            params: { username: username },
+            headers: await getAuthHeaders(),
+        }
+        );
+        console.log(`Friendship ID for username ${username}: ${response.data.friendshipId}`);
+        return response.data.friendshipId;
+        } catch (error) {
+        console.error(`Failed to get friendship ID for username ${username}:`, error);
+        throw error;
+        }
+    };
+
+    const createRoomHandler = async (username: string) => {
+        if (!socket) {
+        Alert.alert("Error", "Socket is not initialized");
+        return;
+        }
+        if (!socket.connected) {
+        Alert.alert("Error", "Socket is not connected yet");
+        return;
+        }
+
+        const friendshipId = await getFriendshipId(username);
+        socket.emit("joinRoom", `${friendshipId}-room`);
+
+        navigation.navigate("Arrow", { friendshipId });
+    };
+
     const fetchRequests = async () => { // Fetch location share requests from the Backend
         try {
             const { data } = await axios.get(`${API_URL}/location-share/requests`, { headers: await getAuthHeaders() });
@@ -43,10 +77,11 @@ const LocationShareInvite: React.FC = () => {
         }
     };
 
-    const handleAcceptRequest = async (requestId: string) => {
+    const handleAcceptRequest = async (requestId: string, username: string) => {
         try {
             await axios.patch(`${API_URL}/location-share/${requestId}/accept`, null, { headers: await getAuthHeaders() });
             setRequests((prevRequests) => prevRequests.filter((request) => request.id !== requestId));
+            createRoomHandler(username);
         } catch (error) {
             console.log("Error accepting location share request:", error);
         }
@@ -85,7 +120,7 @@ const LocationShareInvite: React.FC = () => {
             <View key={request.id} style={styles.card}>
                 <Text style={styles.title}>{request.requester.username} wants to see your location</Text>
                 <View style={styles.actions}>
-                <Button title="Accept" onPress={() => handleAcceptRequest(request.id)} />
+                <Button title="Accept" onPress={() => handleAcceptRequest(request.id, request.requester.username)} />
                 <Button title="Decline" onPress={() => handleDeclineRequest(request.id)} />
                 </View>
             </View>
