@@ -142,7 +142,7 @@ const sendFriendRequest = async () => {
       const headers = await getAuthHeaders();
 
       const request = await axios.post(`${API_URL}/location-share/request-location-share`, { sharerId }, { headers });
-      console.log("Location share request response:", request);
+      //console.log("Location share request response:", request);
       Alert.alert("Success", "Location share request sent");
     } catch (error) {
       console.error(error);

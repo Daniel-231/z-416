@@ -25,6 +25,10 @@ type LocationShareRequest = LocationShare & {
   requester: { id: string; username: string };
 };
 
+type AcceptedShare = LocationShare & {
+  sharer: { id: string; username: string };
+};
+
 const LocationShareInvite: React.FC = () => {
     const [requests, setRequests] = useState<LocationShareRequest[]>([]);
     const socket = useSocket();
@@ -110,6 +114,18 @@ const LocationShareInvite: React.FC = () => {
             sub.remove();
         };
     }, []);
+
+    useEffect(() => { // Requester side: the other person accepted → join the same room and open the arrow
+        if (!socket) return;
+        const onAccepted = (share: AcceptedShare) => {
+            console.log(`${share.sharer.username} accepted your location share`);
+            createRoomHandler(share.sharer.username);
+        }
+        socket.on("locationShare:accepted", onAccepted);
+        return () => {
+            socket.off("locationShare:accepted", onAccepted);
+        };
+    }, [socket]);
 
 
     if (requests.length === 0) return null;

@@ -33,6 +33,10 @@ const ArrowScreen: React.FC = ({ route }: any) => {
   const headingRef = useRef<number>(0);
   const currentLocationRef = useRef<Location.LocationObject | null>(null);
 
+  // Always holds the CURRENT room, even inside callbacks that were created earlier
+  const roomIdRef = useRef<string | null>(null);
+  roomIdRef.current = route.params?.friendshipId ? `${route.params.friendshipId}-room` : null;
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
   }));
@@ -73,13 +77,15 @@ const ArrowScreen: React.FC = ({ route }: any) => {
     return { Authorization: `Bearer ${token}` };
   };
 
-  const sendLocation = async (roomId: string, location: Location.LocationObject) => {
-    if (!socket) return;
+  const sendLocation = async (location: Location.LocationObject) => {
+    const roomId = roomIdRef.current;
+    if (!socket || !roomId) return;
     socket.emit("sendLocation", { roomId, location });
   };
 
-  const closeSocketRoom = async (roomId: string) => {
-    if (!socket) return;
+  const closeSocketRoom = async () => {
+    const roomId = roomIdRef.current;
+    if (!socket || !roomId) return; // not connected, or no room → nothing to close
     socket.emit("closeRoom", roomId);
     console.log(`Socket room closed with ID: ${roomId}`);
   };
@@ -132,7 +138,10 @@ const ArrowScreen: React.FC = ({ route }: any) => {
         (newLocation) => {
           currentLocationRef.current = newLocation;
           setCurrentDeviceLocation(newLocation);
-          sendLocation(`${route.params.friendshipId}-room`, newLocation);
+
+          // no room yet → don't send
+          if (roomIdRef.current) sendLocation(newLocation);
+
           updateRotation();
         }
       );
@@ -183,13 +192,8 @@ const ArrowScreen: React.FC = ({ route }: any) => {
       </View>
 
       <View>
-        <Button
-          title="Close Socket Room"
-          onPress={() => closeSocketRoom(`${route.params.friendshipId}-room`)}
-        />
-      </View>
-      <View>
-        <Button title="Get Current Available Rooms" onPress={getCurrentAvailableRooms} />
+        <Button title="Close Socket Room" onPress={closeSocketRoom} disabled={!roomIdRef.current} />
+        <Button title="Get Current Available Rooms" onPress={getCurrentAvailableRooms} disabled={!roomIdRef.current} />
       </View>
 
       {permissionDenied && <Text>Location permission denied.</Text>}
