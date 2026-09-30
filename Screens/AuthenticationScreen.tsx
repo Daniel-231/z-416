@@ -6,7 +6,8 @@ import axios from "axios";
 import { supabase } from "../Controllers/supabase";
 import { signUpWithEmail, signInWithEmail } from "../Controllers/auth";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL!;
+// APIs
+import * as UsersAPI from "../Controllers/users";
 
 const AuthenticationScreen: React.FC = () => {
     const [username, setUsername] = useState<string>("");
@@ -20,11 +21,8 @@ const AuthenticationScreen: React.FC = () => {
         if (!token) return console.log("Did Not Sync. No Token Found");
 
         try {
-        const res = await axios.post(`${API_URL}/auth/sync`, 
-            { username }, 
-            { headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log(`Sync OK (${res.status})`, res.data);
+        const res = await UsersAPI.syncUser(username);
+        console.log("Sync OK", res);
         } catch (err) {
         const res = axios.isAxiosError(err) ? err.response : null;
         console.error(

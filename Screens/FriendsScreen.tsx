@@ -13,26 +13,12 @@ import { useNavigation } from '@react-navigation/native';
 
 import axios from "axios";
 
-import { AuthorizationToken } from "../Controllers/auth";
 import { useSocket } from "../Components/SocketProvider";
 
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL!;
-
-type User = {
-  id: string;
-  username?: string;
-  email?: string;
-};
-
-type FriendRequest = {
-  id: string;
-  requesterId: string;
-  addresseeId: string;
-  status: "PENDING" | "ACCEPTED" | "BLOCKED";
-  createdAt: string;
-  requester?: User;
-};
+// APIs
+import * as FriendsAPI from "../Controllers/friends";
+import * as LocationShareAPI from "../Controllers/locationShare";
+import type { User, FriendRequest } from "../Controllers/types";
 
 const FriendsScreen: React.FC = () => {
   const [friends, setFriends] = useState<User[]>([]);
@@ -44,24 +30,11 @@ const FriendsScreen: React.FC = () => {
   // Socket instance for real-time communication
   const socket = useSocket();
 
-  const getAuthHeaders = async () => {
-    const token = await AuthorizationToken();
-
-    return {
-      Authorization: `Bearer ${token}`,
-    };
-  };
-
   const fetchFriends = async () => {
     try {
-      const headers = await getAuthHeaders();
+      const data = await FriendsAPI.getFriends();
 
-      const response = await axios.get<User[]>(
-        `${API_URL}/friends/all_friends`,
-        { headers },
-      );
-
-      setFriends(response.data);
+      setFriends(data);
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to fetch friends");
@@ -70,14 +43,9 @@ const FriendsScreen: React.FC = () => {
 
   const fetchFriendRequests = async () => {
     try {
-      const headers = await getAuthHeaders();
+      const data = await FriendsAPI.getFriendRequests();
 
-      const response = await axios.get<FriendRequest[]>(
-        `${API_URL}/friends/friend_requests`,
-        { headers },
-      );
-
-      setFriendRequests(response.data);
+      setFriendRequests(data);
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to fetch friend requests");
@@ -90,8 +58,7 @@ const sendFriendRequest = async () => {
     return;
   }
   try {
-    const headers = await getAuthHeaders();
-    await axios.post(`${API_URL}/friends/send_request`, { username: username.trim() }, { headers });
+    await FriendsAPI.sendFriendRequest(username.trim());
     setUsername("");
     Alert.alert("Success", "Friend request sent");
   } catch (error) {
@@ -105,13 +72,7 @@ const sendFriendRequest = async () => {
 
   const acceptFriendRequest = async (friendshipId: string) => {
     try {
-      const headers = await getAuthHeaders();
-
-      await axios.put(
-        `${API_URL}/friends/${friendshipId}/accept_request`,
-        null,
-        { headers },
-      );
+      await FriendsAPI.acceptFriendRequest(friendshipId);
 
       await Promise.all([fetchFriends(), fetchFriendRequests()]);
     } catch (error) {
@@ -122,13 +83,7 @@ const sendFriendRequest = async () => {
 
   const declineFriendRequest = async (friendshipId: string) => {
     try {
-      const headers = await getAuthHeaders();
-
-      await axios.put(
-        `${API_URL}/friends/${friendshipId}/decline_request`,
-        null,
-        { headers },
-      );
+      await FriendsAPI.declineFriendRequest(friendshipId);
 
       setFriendRequests((prev) => prev.filter((r) => r.id !== friendshipId));
     } catch (error) {
@@ -139,9 +94,7 @@ const sendFriendRequest = async () => {
 
   const requestLocationShare = async (sharerId: string) => {
     try {
-      const headers = await getAuthHeaders();
-
-      const request = await axios.post(`${API_URL}/location-share/request-location-share`, { sharerId }, { headers });
+      const request = await LocationShareAPI.requestLocationShare(sharerId);
       //console.log("Location share request response:", request);
       Alert.alert("Success", "Location share request sent");
     } catch (error) {

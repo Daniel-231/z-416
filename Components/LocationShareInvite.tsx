@@ -2,52 +2,25 @@ import React, { useEffect, useState } from "react";
 import { View, Text, Button, StyleSheet, AppState, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
-import axios from "axios";
-
 // My Controllers and Components
-import { AuthorizationToken } from "../Controllers/auth";
 import { useSocket } from "../Components/SocketProvider";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL!;
-
-type LocationShareStatus = "REQUESTED" | "ACTIVE" | "ENDED" | "DECLINED";
-
-type LocationShare = {
-  id: string;
-  requesterId: string;
-  sharerId: string;
-  status: LocationShareStatus;
-  createdAt: string;
-  endedAt: string | null;
-};
-
-type LocationShareRequest = LocationShare & {
-  requester: { id: string; username: string };
-};
-
-type AcceptedShare = LocationShare & {
-  sharer: { id: string; username: string };
-};
+// APIs
+import * as FriendsAPI from "../Controllers/friends";
+import * as LocationShareAPI from "../Controllers/locationShare";
+import type { LocationShareRequest, AcceptedShare } from "../Controllers/types";
 
 const LocationShareInvite: React.FC = () => {
     const [requests, setRequests] = useState<LocationShareRequest[]>([]);
     const socket = useSocket();
     const navigation = useNavigation<any>();
 
-    const getAuthHeaders = async () => ({ Authorization: `Bearer ${await AuthorizationToken()}` });
-
     // All the things she said
     const getFriendshipId = async (username: string): Promise<string> => { // Get FriendshipID and use it to create a socket room for that friendship
         try {
-        const response = await axios.get<{ friendshipId: string }>(
-        `${API_URL}/friends/get_friendship_id`,
-        {
-            params: { username: username },
-            headers: await getAuthHeaders(),
-        }
-        );
-        console.log(`Friendship ID for username ${username}: ${response.data.friendshipId}`);
-        return response.data.friendshipId;
+        const friendshipId = await FriendsAPI.getFriendshipId(username);
+        console.log(`Friendship ID for username ${username}: ${friendshipId}`);
+        return friendshipId;
         } catch (error) {
         console.error(`Failed to get friendship ID for username ${username}:`, error);
         throw error;
@@ -72,7 +45,7 @@ const LocationShareInvite: React.FC = () => {
 
     const fetchRequests = async () => { // Fetch location share requests from the Backend
         try {
-            const { data } = await axios.get(`${API_URL}/location-share/requests`, { headers: await getAuthHeaders() });
+            const data = await LocationShareAPI.getLocationShareRequests();
             console.log("Fetched location share requests:", data);
             setRequests(data);
         } 
@@ -83,7 +56,7 @@ const LocationShareInvite: React.FC = () => {
 
     const handleAcceptRequest = async (requestId: string, username: string) => {
         try {
-            await axios.patch(`${API_URL}/location-share/${requestId}/accept`, null, { headers: await getAuthHeaders() });
+            await LocationShareAPI.acceptLocationShare(requestId);
             setRequests((prevRequests) => prevRequests.filter((request) => request.id !== requestId));
             createRoomHandler(username);
         } catch (error) {
@@ -93,7 +66,7 @@ const LocationShareInvite: React.FC = () => {
 
     const handleDeclineRequest = async (requestId: string) => {
         try {
-            await axios.patch(`${API_URL}/location-share/${requestId}/decline`, null, { headers: await getAuthHeaders() });
+            await LocationShareAPI.declineLocationShare(requestId);
             setRequests((prevRequests) => prevRequests.filter((request) => request.id !== requestId));
         } catch (error) {
             console.log("Error declining location share request:", error);
