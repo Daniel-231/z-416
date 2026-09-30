@@ -27,20 +27,20 @@ const LocationShareInvite: React.FC = () => {
         }
     };
 
-    const createRoomHandler = async (username: string) => {
+    const createRoomHandler = async (username: string, locationShareId: string) => {
         if (!socket) {
-        Alert.alert("Error", "Socket is not initialized");
-        return;
+            Alert.alert("Error", "Socket is not initialized");
+            return;
         }
         if (!socket.connected) {
-        Alert.alert("Error", "Socket is not connected yet");
-        return;
+            Alert.alert("Error", "Socket is not connected yet");
+            return;
         }
 
         const friendshipId = await getFriendshipId(username);
         socket.emit("joinRoom", `${friendshipId}-room`);
 
-        navigation.navigate("Arrow", { friendshipId });
+        navigation.navigate("Arrow", { friendshipId, locationShareId });
     };
 
     const fetchRequests = async () => { // Fetch location share requests from the Backend
@@ -58,7 +58,7 @@ const LocationShareInvite: React.FC = () => {
         try {
             await LocationShareAPI.acceptLocationShare(requestId);
             setRequests((prevRequests) => prevRequests.filter((request) => request.id !== requestId));
-            createRoomHandler(username);
+            createRoomHandler(username, requestId);
         } catch (error) {
             console.log("Error accepting location share request:", error);
         }
@@ -92,7 +92,7 @@ const LocationShareInvite: React.FC = () => {
         if (!socket) return;
         const onAccepted = (share: AcceptedShare) => {
             console.log(`${share.sharer.username} accepted your location share`);
-            createRoomHandler(share.sharer.username);
+            createRoomHandler(share.sharer.username, share.id);
         }
         socket.on("locationShare:accepted", onAccepted);
         return () => {

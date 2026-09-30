@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { Button, StyleSheet, View, Text } from "react-native";
+import { Button, StyleSheet, View, Text, Alert } from "react-native";
 
 import Svg, { Path } from "react-native-svg";
 import Animated, {
@@ -8,10 +8,11 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { AuthorizationToken } from "../Controllers/auth";
 import { useSocket } from "../Components/SocketProvider";
 
 import * as Location from "expo-location";
+
+import { endLocationShare } from "../Controllers/locationShare";
 
 // Created outside the component so it isn't rebuilt on every render
 const AnimatedSvg = Animated.createAnimatedComponent(Svg);
@@ -72,9 +73,15 @@ const ArrowScreen: React.FC = ({ route }: any) => {
     rotation.value = withTiming(rotation.value + delta, { duration: 500 });
   }, []);
 
-  const getAuthHeaders = async () => {
-    const token = await AuthorizationToken();
-    return { Authorization: `Bearer ${token}` };
+  const endLocationSharing = async (requestId: string) => {
+    try {
+      await endLocationShare(requestId);
+      await closeSocketRoom();
+      console.log("DEBUG:: Location sharing ended for requestId:", requestId);
+    } catch (error) {
+      Alert.alert("Error", "Failed to end location sharing");
+      console.error(error);
+    }
   };
 
   const sendLocation = async (location: Location.LocationObject) => {
@@ -192,7 +199,7 @@ const ArrowScreen: React.FC = ({ route }: any) => {
       </View>
 
       <View>
-        <Button title="Close Socket Room" onPress={closeSocketRoom} disabled={!roomIdRef.current} />
+        <Button title="End Location Sharing" onPress={() => endLocationSharing(route.params.locationShareId)} disabled={!roomIdRef.current} />
         <Button title="Get Current Available Rooms" onPress={getCurrentAvailableRooms} disabled={!roomIdRef.current} />
       </View>
 

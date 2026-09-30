@@ -12,17 +12,17 @@ export async function requestLocationShare(sharerId: string) {
   return data;
 }
 
-export async function acceptLocationShare(shareId: string) {
-  const { data } = await api.patch<LocationShare>(`/location-share/${shareId}/accept`);
+export async function acceptLocationShare(locationShareId: string) {
+  const { data } = await api.patch<LocationShare>(`/location-share/${locationShareId}/accept`);
   return data;
 }
 
-export async function declineLocationShare(shareId: string) {
-  const { data } = await api.patch<LocationShare>(`/location-share/${shareId}/decline`);
+export async function declineLocationShare(locationShareId: string) {
+  const { data } = await api.patch<LocationShare>(`/location-share/${locationShareId}/decline`);
   return data;
 }
 
-export async function endLocationShare(shareId: string) {
-  const { data } = await api.patch<LocationShare>(`/location-share/${shareId}/end`);
+export async function endLocationShare(locationShareId: string) {
+  const { data } = await api.patch<LocationShare>(`/location-share/${locationShareId}/end`);
   return data;
 }
