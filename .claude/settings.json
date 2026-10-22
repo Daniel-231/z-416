@@ -1,5 +1,16 @@
 {
+  "model": "opus",
   "enabledPlugins": {
     "expo@claude-plugins-official": true
+  },
+  "permissions": {
+    "deny": [
+      "Agent(fork)",
+      "Agent(general-purpose)",
+      "Agent(Explore)",
+      "Agent(claude)",
+      "Agent(Plan)",
+      "Agent(claude-code-guide)"
+    ]
   }
 }
