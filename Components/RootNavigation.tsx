@@ -5,6 +5,7 @@ import { createStaticNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
 
+import HealthBanner from "./HealthBanner";
 
 import BottomNavigation from "./BottomNavigation";
 import { useAuth } from "./AuthProvider";
@@ -37,7 +38,8 @@ export default function RootNavigation() {
           <Stack.Screen name="Auth" component={AuthenticationScreen} />
         )}
       </Stack.Navigator>
-      {session && <LocationShareInvite />} 
+      {session && <LocationShareInvite />}
+      <HealthBanner />
     </NavigationContainer>
   );
 }
